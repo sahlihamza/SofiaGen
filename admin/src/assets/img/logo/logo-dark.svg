@@ -1,0 +1,29 @@
+<svg width="260" height="40" viewBox="0 0 260 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Lock icon agrandi (scale ~1.6x) - version dark (gris) -->
+  <g clip-path="url(#clip0)">
+    <g transform="scale(1.6) translate(0, 0.5)">
+      <path d="M15.9108 8.23217V6.78574C15.9108 3.59545 13.3153 1 10.125 1C6.93475 1 4.33931 3.59545 4.33931 6.78574V8.23217H0V20.5269C0 22.524 1.61897 24.143 3.61609 24.143H16.634C18.6311 24.143 20.2501 22.524 20.2501 20.5269V8.23217H15.9108ZM7.23218 6.78574C7.23218 5.19059 8.5299 3.89287 10.125 3.89287C11.7202 3.89287 13.0179 5.19059 13.0179 6.78574V8.23217H7.23218V6.78574ZM14.4644 12.2099C13.8652 12.2099 13.3795 11.7242 13.3795 11.125C13.3795 10.5259 13.8652 10.0402 14.4644 10.0402C15.0635 10.0402 15.5492 10.5259 15.5492 11.125C15.5492 11.7242 15.0635 12.2099 14.4644 12.2099ZM5.78574 12.2099C5.1866 12.2099 4.70091 11.7242 4.70091 11.125C4.70091 10.5259 5.1866 10.0402 5.78574 10.0402C6.38488 10.0402 6.87057 10.5259 6.87057 11.125C6.87057 11.7242 6.38488 12.2099 5.78574 12.2099Z" fill="#575757"/>
+    </g>
+  </g>
+  <defs>
+    <clipPath id="clip0">
+      <rect width="34" height="39" fill="white" transform="translate(0 1)"/>
+    </clipPath>
+  </defs>
+
+  <!-- SOFIAGEN - texte principal -->
+  <text x="42" y="24"
+        font-family="Arial Black, Arial, Helvetica, sans-serif"
+        font-weight="900"
+        font-size="21"
+        fill="#575757"
+        letter-spacing="0.8">SOFIAGEN</text>
+
+  <!-- Sous-texte -->
+  <text x="44" y="37"
+        font-family="Arial, Helvetica, sans-serif"
+        font-weight="400"
+        font-size="11"
+        fill="#575757"
+        letter-spacing="4">MARKETPLACE</text>
+</svg>

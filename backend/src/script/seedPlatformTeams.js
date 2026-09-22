@@ -1,0 +1,171 @@
+require("dotenv").config();
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const logger = require("../config/logger");
+const Role = require("../models/Role");
+const User = require("../models/User");
+const Permission = require("../models/Permission");
+const PlatformTeam = require("../models/PlatformTeam");
+const PlatformTeamMember = require("../models/PlatformTeamMember");
+const Invitation = require("../models/Invitation");
+const seedPermissions = require("./seedPermissions");
+
+const seedPlatformTeams = async () => {
+  await seedPermissions();
+
+  const permissions = await Permission.find({});
+  const platformRoles = await Role.find({ scope: "platform" });
+  const storeRoles = await Role.find({ scope: "store" });
+
+  const supportRole = platformRoles.find((r) => r.slug === "platform-support") || platformRoles[0];
+  const managerRole = storeRoles.find((r) => r.slug === "manager") || storeRoles[0];
+
+  const superAdmin = await User.findOne({ email: "superadmin@gmail.com", deletedAt: null });
+  const actorId = superAdmin ? superAdmin._id : null;
+
+  const teams = [
+    { name: "Platform Support", code: "PLATFORM-SUPPORT", description: "équipe de support plateforme", status: "active" },
+    { name: "Platform Operations", code: "PLATFORM-OPS", description: "équipe opérations plateforme", status: "active" },
+    { name: "Finance", code: "FINANCE", description: "équipe finance et facturation", status: "active" },
+    { name: "Technical Support", code: "TECH-SUPPORT", description: "équipe support technique", status: "active" },
+    { name: "Security", code: "SECURITY", description: "équipe sécurité", status: "active" },
+  ];
+
+  const createdTeams = [];
+  for (const teamData of teams) {
+    const team = await PlatformTeam.findOneAndUpdate(
+      { code: teamData.code },
+      {
+        name: teamData.name,
+        code: teamData.code,
+        description: teamData.description,
+        status: teamData.status,
+        createdBy: actorId,
+        updatedBy: actorId,
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    createdTeams.push(team);
+    logger.info(`Team seeded: ${team.name} (${team.code})`);
+  }
+
+  const platformAdminRole = platformRoles.find((r) => r.slug === "platform-admin") || platformRoles[0];
+
+  const staffUsers = [
+    { name: "Ahmed Benali", email: "ahmed.benali@sofia.gen", userType: "platform_admin", role: [platformAdminRole._id], status: "Active" },
+    { name: "Yassine Amrani", email: "yassine.amrani@sofia.gen", userType: "platform_admin", role: [platformAdminRole._id], status: "Active" },
+    { name: "Ali Tazi", email: "ali.tazi@sofia.gen", userType: "staff", role: [supportRole ? supportRole._id : platformAdminRole._id], status: "Active" },
+    { name: "Sara Idrissi", email: "sara.idrissi@sofia.gen", userType: "staff", role: [managerRole ? managerRole._id : platformAdminRole._id], status: "Active" },
+    { name: "Mohamed Fassi", email: "mohamed.fassi@sofia.gen", userType: "staff", role: [supportRole ? supportRole._id : platformAdminRole._id], status: "Active" },
+    { name: "Amine Bennis", email: "amine.bennis@sofia.gen", userType: "staff", role: [managerRole ? managerRole._id : platformAdminRole._id], status: "Active" },
+  ];
+
+  const createdUsers = [];
+  for (const userData of staffUsers) {
+    const existing = await User.findOne({ email: userData.email, deletedAt: null });
+    if (existing) {
+      existing.role = userData.role;
+      existing.userType = userData.userType;
+      existing.status = userData.status;
+      await existing.save();
+      createdUsers.push(existing);
+    } else {
+      const hashedPassword = await bcrypt.hash("Password123!", 10);
+      const user = await User.create({
+        ...userData,
+        password: hashedPassword,
+        emailVerified: true,
+        provider: "local",
+      });
+      createdUsers.push(user);
+    }
+    logger.info(`User seeded: ${userData.name} (${userData.email})`);
+  }
+
+  const memberships = [
+    { teamIndex: 0, userIndex: 2 },
+    { teamIndex: 0, userIndex: 4 },
+    { teamIndex: 1, userIndex: 3 },
+    { teamIndex: 1, userIndex: 5 },
+    { teamIndex: 2, userIndex: 3 },
+    { teamIndex: 3, userIndex: 2 },
+    { teamIndex: 3, userIndex: 4 },
+    { teamIndex: 4, userIndex: 5 },
+  ];
+
+  for (const m of memberships) {
+    const team = createdTeams[m.teamIndex];
+    const user = createdUsers[m.userIndex];
+    if (!team || !user) continue;
+
+    const existing = await PlatformTeamMember.findOne({ teamId: team._id, userId: user._id });
+    if (!existing) {
+      await PlatformTeamMember.create({
+        teamId: team._id,
+        userId: user._id,
+        status: "active",
+        addedBy: actorId,
+      });
+      await PlatformTeam.updateOne({ _id: team._id }, { $inc: { membersCount: 1 } });
+      logger.info(`Member added: ${user.name} -> ${team.name}`);
+    }
+  }
+
+  const invitations = [
+    { email: "new.support@sofia.gen", firstName: "New", lastName: "Support", roleIds: [platformAdminRole._id], storeId: null, invitedBy: actorId, sendEmail: false },
+    { email: "ops.manager@sofia.gen", firstName: "Ops", lastName: "Manager", roleIds: [platformAdminRole._id], storeId: null, invitedBy: actorId, sendEmail: false },
+  ];
+
+  for (const inv of invitations) {
+    const existing = await Invitation.findOne({ email: inv.email, status: "pending" });
+    if (!existing) {
+      const rawToken = require("crypto").randomBytes(32).toString("hex");
+      const tokenHash = require("crypto").createHash("sha256").update(rawToken).digest("hex");
+      await Invitation.create({
+        email: inv.email.toLowerCase(),
+        firstName: inv.firstName,
+        lastName: inv.lastName,
+        tokenHash,
+        tokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        status: "pending",
+        invitedBy: inv.invitedBy,
+        roleIds: inv.roleIds,
+        storeId: inv.storeId,
+      });
+      logger.info(`Invitation seeded: ${inv.email}`);
+    }
+  }
+
+  logger.info("Platform teams, staff users, and invitations seeded successfully");
+  return {
+    teams: createdTeams,
+    users: createdUsers,
+  };
+};
+
+const clearPlatformTeams = async () => {
+  await PlatformTeamMember.deleteMany({});
+  await PlatformTeam.deleteMany({});
+  logger.info("Platform teams cleared");
+};
+
+if (require.main === module) {
+  (async () => {
+    try {
+      await mongoose.connect(process.env.MONGO_URI);
+      const command = process.argv[2];
+      if (command === "clear") {
+        await clearPlatformTeams();
+      } else {
+        await seedPlatformTeams();
+      }
+      process.exit(0);
+    } catch (error) {
+      logger.error("Seed platform teams error:", error.message);
+      process.exit(1);
+    }
+  })();
+}
+
+module.exports = { seedPlatformTeams, clearPlatformTeams };

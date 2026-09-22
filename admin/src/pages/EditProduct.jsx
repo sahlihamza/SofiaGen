@@ -1,0 +1,26 @@
+import React from "react";
+import { useHistory, useParams } from "react-router-dom";
+
+//internal import
+import ProductForm from "@/components/Product_components/ProductForm";
+import { C, FONT } from "@/components/Product_components/styles";
+
+// Full-page Edit Product form (same layout as Add Product). The product id
+// comes from the route (/products/:id/edit). Cancel or a successful save
+// returns to the products list.
+const EditProduct = () => {
+  const history = useHistory();
+  const { id } = useParams();
+  const goToList = () => history.push("/products");
+
+  return (
+    <div
+      className="w-full max-w-screen-2xl mx-auto rounded-lg shadow-xs overflow-hidden mt-4 mb-8"
+      style={{ background: C.bg, fontFamily: FONT }}
+    >
+      <ProductForm id={id} isPage onCancel={goToList} onSuccess={goToList} />
+    </div>
+  );
+};
+
+export default EditProduct;

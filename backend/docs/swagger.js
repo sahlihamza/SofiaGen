@@ -1,0 +1,335 @@
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+
+const options = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "SofiaGen API",
+      version: "1.0.0",
+      description: "SaaS Billing & Subscription Enterprise API",
+      contact: { name: "SofiaGen Team" },
+    },
+    servers: [
+      { url: "http://localhost:3000/api", description: "Development server" },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+      schemas: {
+        Plan: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            description: { type: "string" },
+            pricing: { type: "object" },
+            features: { type: "object" },
+            limits: { type: "object" },
+            status: { type: "string" },
+            visibility: { type: "string" },
+          },
+        },
+        Subscription: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            storeId: { type: "string" },
+            planId: { type: "string" },
+            status: { type: "string", enum: ["active", "trial", "past_due", "suspended", "canceled", "expired", "pending"] },
+            billingCycle: { type: "string", enum: ["monthly", "yearly"] },
+            currentPeriodStart: { type: "string", format: "date" },
+            currentPeriodEnd: { type: "string", format: "date" },
+          },
+        },
+        Invoice: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            invoiceNumber: { type: "string" },
+            storeId: { type: "string" },
+            subscriptionId: { type: "string" },
+            planId: { type: "string" },
+            items: { type: "array" },
+            subtotal: { type: "number" },
+            tax: { type: "number" },
+            total: { type: "number" },
+            currency: { type: "string" },
+            status: { type: "string", enum: ["draft", "sent", "paid", "overdue", "canceled"] },
+            issuedAt: { type: "string", format: "date" },
+            dueDate: { type: "string", format: "date" },
+            paidAt: { type: "string", format: "date" },
+          },
+        },
+        Payment: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            storeId: { type: "string" },
+            invoiceId: { type: "string" },
+            subscriptionId: { type: "string" },
+            amount: { type: "number" },
+            currency: { type: "string" },
+            method: { type: "string" },
+            gateway: { type: "string", enum: ["stripe", "paypal", "razorpay", "manual"] },
+            status: { type: "string", enum: ["pending", "paid", "failed", "refunded"] },
+            transactionId: { type: "string" },
+            paidAt: { type: "string", format: "date" },
+          },
+        },
+        UsageCounter: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            storeId: { type: "string" },
+            quotaTypeCode: { type: "string" },
+            used: { type: "number" },
+            included: { type: "number" },
+            softLimitLevel: { type: "string", enum: ["normal", "warning", "critical", "blocked"] },
+            periodStart: { type: "string", format: "date" },
+            periodEnd: { type: "string", format: "date" },
+          },
+        },
+        GracePeriod: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            subscriptionId: { type: "string" },
+            storeId: { type: "string" },
+            quotaTypeCode: { type: "string" },
+            graceStartDate: { type: "string", format: "date" },
+            graceEndDate: { type: "string", format: "date" },
+            status: { type: "string", enum: ["active", "expired", "resolved", "escalated"] },
+            reason: { type: "string" },
+          },
+        },
+        Discount: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            code: { type: "string" },
+            couponId: { type: "string" },
+            discountType: { type: "string", enum: ["flat", "percentage"] },
+            discountAmount: { type: "number" },
+            maxDiscountAmount: { type: "number" },
+            appliesTo: { type: "string", enum: ["plan", "invoice", "overage", "subscription"] },
+            validFrom: { type: "string", format: "date" },
+            validUntil: { type: "string", format: "date" },
+            active: { type: "boolean" },
+          },
+        },
+        Overage: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            quotaTypeCode: { type: "string" },
+            planIds: { type: "array" },
+            unitPrice: { type: "number" },
+            currency: { type: "string" },
+            billingStrategy: { type: "string" },
+            threshold: { type: "number" },
+            maxOverage: { type: "number" },
+            minBillableQty: { type: "number" },
+            roundingMode: { type: "string" },
+            status: { type: "string" },
+          },
+        },
+        PlanUpgradeRule: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            targetPlanId: { type: "string" },
+            strategy: { type: "string", enum: ["immediate", "prorata", "next_renewal", "manual_approval"] },
+            conditions: { type: "object" },
+            active: { type: "boolean" },
+          },
+        },
+        PlanDowngradeRule: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            conditions: { type: "object" },
+            action: { type: "string", enum: ["deny", "read_only", "force_delete"] },
+            active: { type: "boolean" },
+          },
+        },
+        PlanEligibilityRule: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            conditions: { type: "object" },
+            action: { type: "string" },
+            priority: { type: "number" },
+            active: { type: "boolean" },
+          },
+        },
+        TrialRule: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            conditions: { type: "array" },
+            actions: { type: "array" },
+            active: { type: "boolean" },
+          },
+        },
+        TrialFactor: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            type: { type: "string", enum: ["time", "catalog", "business", "api", "storage", "marketing", "ai"] },
+            unit: { type: "string" },
+            value: { type: "number" },
+            active: { type: "boolean" },
+          },
+        },
+        PlanTemplate: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            description: { type: "string" },
+            config: { type: "object" },
+            isDefault: { type: "boolean" },
+          },
+        },
+        PlanVersion: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            planId: { type: "string" },
+            version: { type: "number" },
+            name: { type: "string" },
+            description: { type: "string" },
+            changes: { type: "array" },
+            snapshot: { type: "object" },
+          },
+        },
+        PlanPrice: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            planId: { type: "string" },
+            currency: { type: "string" },
+            billingCycle: { type: "string", enum: ["monthly", "quarterly", "semi_annual", "yearly", "custom"] },
+            price: { type: "number" },
+            taxIncluded: { type: "boolean" },
+          },
+        },
+        QuotaType: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            code: { type: "string" },
+            name: { type: "string" },
+            unit: { type: "string" },
+            description: { type: "string" },
+            active: { type: "boolean" },
+          },
+        },
+        FeatureGroup: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            description: { type: "string" },
+            icon: { type: "string" },
+            color: { type: "string" },
+          },
+        },
+        Feature: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            description: { type: "string" },
+            code: { type: "string" },
+            category: { type: "string" },
+            icon: { type: "string" },
+          },
+        },
+        SoftLimit: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            name: { type: "string" },
+            slug: { type: "string" },
+            thresholds: { type: "object" },
+            notificationEmails: { type: "boolean" },
+            active: { type: "boolean" },
+          },
+        },
+        PlanAuditLog: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            planId: { type: "string" },
+            storeId: { type: "string" },
+            subscriptionId: { type: "string" },
+            action: { type: "string" },
+            previousValue: { type: "object" },
+            newValue: { type: "object" },
+            actor: { type: "string" },
+            ip: { type: "string" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+        Error: {
+          type: "object",
+          properties: {
+            success: { type: "boolean" },
+            message: { type: "string" },
+          },
+        },
+        SuccessResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean" },
+            data: {},
+            message: { type: "string" },
+          },
+        },
+        PaginatedResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean" },
+            data: { type: "array" },
+            pagination: {
+              type: "object",
+              properties: {
+                total: { type: "integer" },
+                page: { type: "integer" },
+                limit: { type: "integer" },
+                pages: { type: "integer" },
+              },
+            },
+          },
+        },
+      },
+    },
+    security: [{ bearerAuth: [] }],
+  },
+  apis: ["src/routes/*.js"],
+};
+
+const specs = swaggerJsdoc(options);
+
+module.exports = { specs, swaggerUi };

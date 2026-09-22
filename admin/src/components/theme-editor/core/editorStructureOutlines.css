@@ -1,0 +1,55 @@
+/* Bordures structurelles visibles uniquement dans le canvas d'édition */
+.show-structure-outlines [data-gjs-type="section-component"],
+.show-structure-outlines .section-component {
+  outline: 1px dashed rgba(37, 99, 235, 0.4) !important;
+  outline-offset: -1px;
+}
+
+.show-structure-outlines [data-gjs-type="columns-component"],
+.show-structure-outlines .columns-component,
+.show-structure-outlines [data-gjs-type="grid-component"],
+.show-structure-outlines .grid-component,
+.show-structure-outlines [data-gjs-type="stack-component"],
+.show-structure-outlines .stack-component,
+.show-structure-outlines [data-gjs-type="container-component"],
+.show-structure-outlines .container-component {
+  outline: 1px dashed rgba(16, 185, 129, 0.4) !important;
+  outline-offset: -1px;
+}
+
+.show-structure-outlines [data-gjs-type="hero-component"],
+.show-structure-outlines [data-gjs-type="accordion-component"],
+.show-structure-outlines [data-gjs-type="tabs-component"],
+.show-structure-outlines [data-gjs-type="testimonials-component"],
+.show-structure-outlines [data-gjs-type="carousel-component"],
+.show-structure-outlines [data-gjs-type="icon-box-component"],
+.show-structure-outlines [data-gjs-type="faq-component"],
+.show-structure-outlines .hero-component,
+.show-structure-outlines .accordion-component,
+.show-structure-outlines .tabs-component,
+.show-structure-outlines .testimonials-component,
+.show-structure-outlines .carousel-component,
+.show-structure-outlines .icon-box-component,
+.show-structure-outlines .faq-component {
+  outline: 1px dashed rgba(217, 119, 6, 0.35) !important;
+  outline-offset: -1px;
+}
+
+.show-structure-outlines .gjs-cv-canvas .gjs-highlighter,
+.show-structure-outlines .gjs-cv-canvas .gjs-highlighter-sel,
+.show-structure-outlines .gjs-cv-canvas .gjs-highlighter-warning {
+  outline-style: dashed !important;
+  outline-width: 2px !important;
+  outline-offset: -2px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.show-structure-outlines .gjs-cv-canvas .gjs-highlighter,
+.show-structure-outlines .gjs-hovered {
+  outline-color: rgba(37, 99, 235, 0.9) !important;
+}
+
+.show-structure-outlines .gjs-cv-canvas .gjs-highlighter-sel {
+  outline-color: rgba(37, 99, 235, 1) !important;
+}

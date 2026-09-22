@@ -1,0 +1,25 @@
+
+> sofiagen-backend@0.1.0 dev
+> nodemon src/index.js
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): src\**\*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node src/index.js`[39m
+⚠️ PAYMENT_ENCRYPTION_KEY is not set. Using a development default encryption key. Do not use this in production.
+[17:55:09 21 Aug 2026] [32minfo[39m: mongodb connection success! mongodb://127.0.0.1:27017/sofiagen
+[17:55:11 21 Aug 2026] [32minfo[39m: Role templates seeded
+[17:55:12 21 Aug 2026] [31merror[39m: startup: seedPermissions failed: Validation failed: code: Le code doit suivre le format module.action (ex: platform.plan.view). Regex: /^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/
+[17:55:12 21 Aug 2026] [31merror[39m: startup: seedPlatformRoles failed: Plan executor error during findAndModify :: caused by :: E11000 duplicate key error collection: sofiagen.roles index: storeId_1_name_1 dup key: { storeId: null, name: "Super Admin" }
+[17:55:12 21 Aug 2026] [32minfo[39m: dataRetentionJob: disabled (set ENABLE_DATA_RETENTION_JOB=true in .env to enable).
+[17:55:12 21 Aug 2026] [32minfo[39m: notificationDeliveryJob: disabled (set ENABLE_NOTIFICATION_DELIVERY_JOB=true in .env to enable).
+[17:55:12 21 Aug 2026] [32minfo[39m: subscriptionExpiryJob: disabled (set ENABLE_SUBSCRIPTION_EXPIRY_JOB=true in .env to enable).
+[17:55:12 21 Aug 2026] [32minfo[39m: slaEscalationJob: disabled (set ENABLE_SLA_ESCALATION_JOB=true in .env to enable).
+[17:55:12 21 Aug 2026] [32minfo[39m: socket.io initialized
+[17:55:12 21 Aug 2026] [32minfo[39m: server running on port 5055 with maxHeaderSize=131072
+[17:55:12 21 Aug 2026] [32minfo[39m: storePurgeJob: processed 0 stores, 0 purged, 0 errors
+[17:55:12 21 Aug 2026] [32minfo[39m: Super Admin roles synced: 0 role(s) -> 128 permissions
+[17:55:12 21 Aug 2026] [32minfo[39m: logRetentionJob: {"apiLogsDeleted":0,"appLogsDeleted":0,"webhookLogsDeleted":0,"jobLogsDeleted":0,"securityLogsDeleted":0,"auditLogsDeleted":0,"exportJobsDeleted":0}
+[17:55:12 21 Aug 2026] [31merror[39m: ❌ Erreur de configuration mailer platform: connect ECONNREFUSED ::1:25
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m

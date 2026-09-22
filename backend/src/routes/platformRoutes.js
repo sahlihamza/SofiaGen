@@ -1,0 +1,36 @@
+const express = require("express");
+const { getCode, getCodes } = require("../config/rbac/permissionCodes");
+const router = express.Router();
+const platformUserRoutes = require("./platformUserRoutes");
+const platformPlanRoutes = require("./platformPlanRoutes");
+const platformRoleRoutes = require("./platformRoleRoutes");
+const platformAuditRoutes = require("./platformAuditRoutes");
+const platformLogsRoutes = require("./platformLogsRoutes");
+const platformAnalyticsRoutes = require("./platformAnalyticsRoutes");
+const platformDashboardRoutes = require("./platformDashboardRoutes");
+const platformDashboardV2Routes = require("./platformDashboardV2Routes");
+const platformSettingsRoutes = require("./platformSettingsRoutes");
+const invitationRoutes = require("./invitationRoutes");
+const platformTeamRoutes = require("./platformTeamRoutes");
+const platformStoreRoutes = require("./platformStoreRoutes");
+const staffRoutes = require("./staffRoutes");
+const platformSupportTicketRoutes = require("./platformSupportTicketRoutes");
+const platformNotificationRoutes = require("./platformNotificationRoutes");
+
+router.use("/users", platformUserRoutes);
+router.use("/staff", staffRoutes);
+router.use("/billing/plans", platformPlanRoutes);
+router.use("/roles", platformRoleRoutes);
+router.use("/audit-logs", platformAuditRoutes);
+router.use("/logs", platformLogsRoutes);
+router.use("/analytics", platformAnalyticsRoutes);
+router.use("/dashboard", platformDashboardRoutes);
+router.use("/dashboard-v2", platformDashboardV2Routes);
+router.use("/settings", platformSettingsRoutes);
+router.use("/invitations", invitationRoutes);
+router.use("/teams", platformTeamRoutes);
+router.use("/stores", platformStoreRoutes);
+router.use("/support-tickets", platformSupportTicketRoutes);
+router.use("/notifications", platformNotificationRoutes);
+
+module.exports = router;

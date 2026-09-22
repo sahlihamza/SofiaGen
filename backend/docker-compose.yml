@@ -1,0 +1,225 @@
+services:
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin}
+    depends_on:
+      - mongo
+
+  backend:
+    build:
+      context: .
+    restart: unless-stopped
+    command: sh -c "npm install && npm start"
+    develop:
+      watch:
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: package.json
+    ports:
+      - "5055:5055"
+    volumes:
+      - .:/app
+      - backend-node-modules:/app/node_modules
+    env_file:
+      - .env
+    environment:
+      PORT: 5055
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      MONGO_URI: mongodb://mongo:27017/sofiagen?charset=utf8
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_SECRET_FOR_VERIFY: ${JWT_SECRET_FOR_VERIFY}
+      ENCRYPT_PASSWORD: ${ENCRYPT_PASSWORD}
+      STRIPE_KEY: ${STRIPE_KEY}
+      MAX_AMOUNT: ${MAX_AMOUNT:-10000.0}
+      MIN_AMOUNT: ${MIN_AMOUNT:-10.0}
+      AMOUNT_STEP: ${AMOUNT_STEP:-5.0}
+      CURRENCY: ${CURRENCY:-usd}
+      STRIPE_PAYMENT_DESCRIPTION: ${STRIPE_PAYMENT_DESCRIPTION:-This is sofiagen payment with Stripe!}
+      STORE_URL: ${STORE_URL:-http://localhost:3000}
+      ADMIN_URL: ${ADMIN_URL:-http://localhost:5100}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-7d}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5100}
+    depends_on:
+      mongo:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').request({hostname:'localhost',port:5055,path:'/api/health'},(r)=>process.exit(r.statusCode===401?0:1)).on('error',()=>process.exit(1)).end()"]
+      interval: 3s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+
+  store:
+    build:
+      context: ../store
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5055/api}
+        NEXT_PUBLIC_API_SOCKET_URL: ${NEXT_PUBLIC_API_SOCKET_URL:-http://localhost:5055}
+        NEXT_PUBLIC_STORE_DOMAIN: ${NEXT_PUBLIC_STORE_DOMAIN:-http://localhost:3000/}
+        NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
+    restart: unless-stopped
+    command: sh -c "npm install && npm run dev -- --hostname 0.0.0.0"
+    develop:
+      watch:
+        - action: sync
+          path: ../store
+          target: /app
+          ignore:
+            - node_modules/
+            - .next/
+        - action: rebuild
+          path: ../store/package.json
+    ports:
+      - "3001:3000"
+    volumes:
+      - ../store:/app
+      - store-node-modules:/app/node_modules
+      - /app/.next
+    environment:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://backend:5055/api}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:5055/api}
+      NEXT_PUBLIC_API_SOCKET_URL: ${NEXT_PUBLIC_API_SOCKET_URL:-http://localhost:5055}
+      NEXT_PUBLIC_STORE_DOMAIN: ${NEXT_PUBLIC_STORE_DOMAIN:-http://localhost:3000/}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5100}
+    depends_on:
+      - backend
+
+  admin:
+    build:
+      context: ../admin
+      target: runner
+      args:
+        VITE_APP_API_BASE_URL: http://backend:5055/api
+        VITE_APP_API_SOCKET_URL: http://backend:5055
+        VITE_APP_STORE_DOMAIN: http://localhost:3000
+        VITE_APP_ADMIN_DOMAIN: http://localhost:5100
+        VITE_APP_ENCRYPT_PASSWORD: 856305f1a5b7ba87b8448e69b3bb7a4631c23f0afa2ca5331fa1373f7e372345
+    restart: unless-stopped
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    develop:
+      watch:
+        - action: sync
+          path: ../admin
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ../admin/package.json
+    ports:
+      - "5100:80"
+    volumes:
+      - ../packages:/app/packages
+    depends_on:
+      - backend
+
+  admin-dev:
+    image: node:20-alpine
+    working_dir: /app
+    command: npm run dev -- --host 0.0.0.0
+    restart: unless-stopped
+    ports:
+      - "5100:5100"
+    volumes:
+      - ../admin:/app
+      - ../packages:/app/packages
+      - admin-node-modules:/app/node_modules
+    environment:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      VITE_APP_API_BASE_URL: http://backend:5055/api
+      VITE_APP_API_SOCKET_URL: http://backend:5055
+      VITE_APP_STORE_DOMAIN: ${VITE_APP_STORE_DOMAIN:-http://localhost:3000}
+      VITE_APP_ADMIN_DOMAIN: ${VITE_APP_ADMIN_DOMAIN:-http://localhost:5100}
+      VITE_APP_ENCRYPT_PASSWORD: ${VITE_APP_ENCRYPT_PASSWORD}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://backend:5055/api}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  marketing:
+    build:
+      context: ../marketing
+    restart: unless-stopped
+    command: sh -c "node server.js"
+    ports:
+      - "3002:3000"
+    environment:
+      NODE_ENV: production
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL_MARKETING:-http://backend:5055/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL_MARKETING:-http://backend:5055/api}
+      NEXT_PUBLIC_ADMIN_URL: ${NEXT_PUBLIC_ADMIN_URL:-http://localhost:5100}
+      NEXT_PUBLIC_LOGIN_URL: ${NEXT_PUBLIC_LOGIN_URL:-http://localhost:5100/login}
+      NEXT_PUBLIC_SIGNUP_URL: ${NEXT_PUBLIC_SIGNUP_URL:-http://localhost:5100/signup}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  marketing-dev:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install --legacy-peer-deps && npm run dev"
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    volumes:
+      - ../marketing:/app
+      - marketing-node-modules:/app/node_modules
+      - /app/.next
+    environment:
+      HOSTNAME: 0.0.0.0
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL_MARKETING:-http://backend:5055/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL_MARKETING:-http://backend:5055/api}
+      NEXT_PUBLIC_ADMIN_URL: ${NEXT_PUBLIC_ADMIN_URL:-http://localhost:5100}
+      NEXT_PUBLIC_LOGIN_URL: ${NEXT_PUBLIC_LOGIN_URL:-http://localhost:5100/login}
+      NEXT_PUBLIC_SIGNUP_URL: ${NEXT_PUBLIC_SIGNUP_URL:-http://localhost:5100/signup}
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
+  backend-node-modules:
+  store-node-modules:
+  admin-node-modules:
+  marketing-node-modules:
